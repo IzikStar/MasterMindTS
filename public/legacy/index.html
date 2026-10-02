@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MasterMind</title>
+    <!-- <link rel="stylesheet" href="output.css"> -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+        integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<style>
+    /* הגדרת האנימציה */
+    @keyframes flipIn {
+        from {
+            transform: rotateY(90deg);
+            opacity: 0;
+        }
+
+        to {
+            transform: rotateY(0deg);
+            opacity: 1;
+        }
+    }
+
+    .flip-in {
+        animation: flipIn 0.6s ease-out forwards;
+    }
+</style>
+
+<body class="md:h-[1200px] h-[900px]">
+    <header>
+        <div class="nav flex flex-row justify-center">
+            <button id="animatedButton"
+                class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded transition-all duration-300 transform hover:scale-105">new
+                game</button>
+        </div>
+        <div id="feedback" class="mt-5 text-center text-xl text-black font-bold"></div>
+
+    </header>
+
+    <main class="flex flex-row">
+        <div id="board"
+            class="absolute md:left-[500px] left-0 md:mt-20 mt-5 flex flex-col flex-wrap md:w-[500px] w-[300px] justify-evenly mx-auto bg-gray-600 border-[4px] border-gray-700 min-h[200px] rounded-sm">
+            <div id="hiddencode"
+                class="md:w-[470px] w-[280px] flex flex-row justify-evenly text-xl border-b-[5px] border-black ml-[13px]">
+                <i class="text-3xl md:p-[30px] p-[15px] fa-solid fa-circle-exclamation"></i>
+                <i class="text-3xl md:p-[30px] p-[15px] fa-solid fa-circle-exclamation"></i>
+                <i class="text-3xl md:p-[30px] p-[15px] fa-solid fa-circle-exclamation"></i>
+                <i class="text-3xl md:p-[30px] p-[15px] fa-solid fa-circle-exclamation"></i>
+            </div>
+            <div id="upearingcode"
+                class="md:w-[470px] w-[280px] flex-row justify-evenly text-xl border-b-[5px] border-black ml-[13px] hidden">
+                <i id="upearingcode0" class="text-3xl md:p-[30px] p-[15px] fa-solid fa-circle"></i>
+                <i id="upearingcode1" class="text-3xl md:p-[30px] p-[15px] fa-solid fa-circle"></i>
+                <i id="upearingcode2" class="text-3xl md:p-[30px] p-[15px] fa-solid fa-circle"></i>
+                <i id="upearingcode3" class="text-3xl md:p-[30px] p-[15px] fa-solid fa-circle"></i>
+            </div>
+        </div>
+
+        <div id="colorSelector" class="flex flex-col text-center absolute md:right-60 top-56 right-0"></div>
+    </main>
+    <script>
+        var countTurns = 0;
+        var Red = "#FF0000", Blue = "#0000FF", Orange = "#FFA500", Yellow = "#FFFF00", DeepSkyBlue = "#00BFFF", Green = "#008000";
+        var isTurn = "turn" + (countTurns + 1);
+        var turnArr = [];
+        var isWin = false;
+        var chosenIcon = null; // Initialize as null to represent no icon selected
+        var codeArr = []; // Store the chosen code globally
+        var gray600 = "#4B5563";
+
+        function init() {
+            newGame();
+            codeArr = ChoseCode();
+            BoardTurnCreate(); // Corrected typo from 'BoardTurnCriate' to 'BoardTurnCreate'
+            ColorSelector();
+        }
+
+        function newGame() {
+            const button = document.getElementById('animatedButton');
+            button.addEventListener('click', () => {
+                button.classList.add('animate-bounce');
+                setTimeout(() => {
+                    button.classList.remove('animate-bounce');
+                }, 500);
+                location.reload();
+            });
+        }
+
+        const ChoseCode = () => {
+            const codeArr = [];
+            let colorArr = [Red, Blue, Orange, Yellow, DeepSkyBlue, Green];
+            let colorNames = ["Red", "Blue", "Orange", "Yellow", "DeepSkyBlue", "Green"];
+            console.log("Code to guess:"); // Debugging: print the code to guess
+            for (let i = 0; i < 4; i++) {
+                let num = Math.floor(Math.random() * colorArr.length);
+                while (codeArr.includes(colorArr[num])) {
+                    num = Math.floor(Math.random() * colorArr.length);
+                }
+                codeArr.push(colorArr[num]);
+                document.getElementById("upearingcode" + i).style.color = colorArr[num];
+                console.log(colorNames[num]); // Debugging: print the code to guess
+            }
+            return codeArr;
+        }
+
+        function BoardTurnCreate() { // Corrected typo from 'BoardTurnCriate' to 'BoardTurnCreate'
+            const board = document.querySelector("#board");
+            turnArr = ["turn1", "turn2", "turn3", "turn4", "turn5", "turn6", "turn7", "turn8", "turn9", "turn10"];
+            for (let index = 0; index < turnArr.length; index++) {
+                const turn = document.createElement("div");
+                turn.id = turnArr[index];
+                turn.classList = "turn flex flex-row justify-evenly";
+                board.append(turn);
+
+                const trying = document.createElement("div");
+                trying.id = "trying" + index;
+                trying.classList = "flex flex-row"; // Changed 'answer.classList' to 'trying.classList'
+                turn.append(trying);
+
+                for (let i = 0; i < 4; i++) {
+                    const iconColor = document.createElement("i");
+                    iconColor.id = "iconColor" + index + "-" + i;
+                    iconColor.classList = "text-3xl md:p-[25px] p-[12px] fa-solid fa-circle transition-transform duration-300 ease-in-out";
+                    trying.append(iconColor);
+                    iconColor.onclick = function () {
+                        Paint(iconColor.id);
+                    }
+                }
+
+                const answer = document.createElement("div");
+                answer.id = "answer" + index;
+                answer.classList = "";
+                turn.append(answer);
+
+                for (let i = 0; i < 2; i++) {
+                    const halfAnswer = document.createElement("div");
+                    if (i == 0) {
+                        halfAnswer.classList = "md:pt-[20px] md:pr-[20px] md:pb-0 pt-[5px] pb-[0px] pr-[10px]";
+                    }
+                    answer.append(halfAnswer);
+                    for (let j = 0; j < 2; j++) {
+                        const iconAnswer = document.createElement("i");
+                        iconAnswer.id = "iconAnswer" + index + "-" + i + "," + j;
+                        iconAnswer.classList = "text-xl md:p-[3px] p-[1px] fa-solid fa-thumbtack";
+                        iconAnswer.style.color = gray600;
+                        halfAnswer.append(iconAnswer);
+                    }
+                }
+            }
+            for (let index = 0; index < 4; index++) {
+                document.getElementById("trying" + countTurns).children[index].classList.add("cursor-pointer");
+            }
+        }
+
+        function Paint(id = "") {
+            if (isWin == false) {
+                let iconColor = document.getElementById(id);
+                if (iconColor.parentElement.parentElement.id == turnArr[countTurns]) {
+                    if (chosenIcon && chosenIcon != iconColor.id) {
+                        document.getElementById(chosenIcon).style.borderWidth = "0px";
+                    }
+                    iconColor.style.borderColor = "white";
+                    iconColor.style.borderWidth = "3px";
+                    iconColor.style.borderRadius = "20%";
+                    chosenIcon = iconColor.id;
+                } else if (chosenIcon) {
+                    document.getElementById(chosenIcon).style.borderWidth = "0px";
+                    chosenIcon = null;
+                }
+
+            }
+        }
+
+        function ColorSelector() {
+            const colorSelector = document.getElementById('colorSelector');
+            let colorArr = [Red, Blue, Orange, Yellow, DeepSkyBlue, Green];
+            for (let index = 0; index < colorArr.length; index++) {
+                const Color = document.createElement("i");
+                Color.id = colorArr[index];
+                Color.classList = "text-3xl md:p-[5px] p-[2px] fa-solid fa-circle cursor-pointer transition-transform duration-300 ease-in-out";
+                Color.style.color = colorArr[index];
+                colorSelector.append(Color);
+
+                Color.onclick = function () {
+                    if (chosenIcon) { // Ensure an icon is selected
+                        document.getElementById(chosenIcon).style.color = colorArr[index];
+                        console.log(document.getElementById(chosenIcon).style.color);
+                        document.getElementById(chosenIcon).dataset.color = colorArr[index]; // Save color as data attribute           
+                        document.getElementById(chosenIcon).classList.add('animate-ping');
+                        let lastchosen = chosenIcon;
+                        setTimeout(() => {
+                            document.getElementById(lastchosen).classList.remove('animate-ping');
+                        }, 300);
+                    }
+                }
+            }
+
+            const cancel = document.createElement("button");
+            cancel.innerHTML = "Cancel";
+            colorSelector.append(cancel);
+
+            cancel.onclick = function () {
+                if (chosenIcon) { // Ensure an icon is selected
+                    document.getElementById(chosenIcon).style.color = "black";
+                    document.getElementById(chosenIcon).style.borderWidth = "0px";
+                    document.getElementById(chosenIcon).removeAttribute('data-color'); // Remove data attribute
+                    chosenIcon = null;
+                }
+            }
+
+            const check = document.createElement("button");
+            check.innerHTML = "Check my code!";
+            check.classList = "bg-green-500 hover:bg-blue-700 text-white font-bold md:py-4 md:px-8 py-2 px-4 w-[75px] md:w-auto rounded transition-all duration-300 transform hover:scale-105"
+            colorSelector.append(check);
+
+            check.onclick = function () {
+                let allColor = 0;
+                let colorsTurn = [];
+                let validSelection = true;
+                if (!isWin) {
+                    for (let index = 0; index < 4; index++) {
+                        let corentColor = document.getElementById("trying" + countTurns).children[index].dataset.color;
+                        if (!corentColor) {
+                            document.getElementById("feedback").textContent = "Please select all colors";
+                            setTimeout(() => {
+                                document.getElementById("feedback").textContent = ""
+                            }, 1500);
+                            validSelection = false;
+                            break;
+                        }
+                        if (colorsTurn.includes(corentColor)) {
+                            document.getElementById("feedback").textContent = "Please make sure you don't repeat the same color more than once.";
+                            setTimeout(() => {
+                                document.getElementById("feedback").textContent = ""
+                            }, 3000);
+                            validSelection = false;
+                            break;
+                        }
+                        colorsTurn.push(corentColor);
+                        allColor++;
+                    }
+                    if (validSelection && allColor == 4) {
+                        CheckTheCode();
+                    }
+                }
+            }
+        }
+
+        function CheckTheCode() {
+            let colorArr = ["red", "blue", "yellow", "green", "orange", "purple"];
+            if (chosenIcon) {
+                document.getElementById(chosenIcon).style.borderWidth = "0px";
+                chosenIcon = null;
+            }
+            let numOfBlacks = 0;
+            let numOfWhites = 0;
+            for (let index = 0; index < 4; index++) {
+                const color = document.getElementById("trying" + countTurns).children[index].dataset.color;
+                console.log(color); // This should log the correct indices
+                if (color == codeArr[index]) {
+                    ++numOfBlacks;
+                }
+                else if (codeArr.includes(color)) {
+                    ++numOfWhites;
+                }
+            }
+            console.log("blacks =", numOfBlacks, "whites =", numOfWhites);
+            if (numOfBlacks == 4) {
+                for (let i = 0; i < 2; i++) {
+                    for (let j = 0; j < 2; j++) {
+                        document.getElementById("iconAnswer" + countTurns + "-" + i + "," + j).style.color = "black";
+                        document.getElementById("iconAnswer" + countTurns + "-" + i + "," + j).classList.add('animate-bounce');
+                        setTimeout(() => {
+                            document.getElementById("iconAnswer" + countTurns + "-" + i + "," + j).classList.remove('animate-bounce');
+                        }, 55550);
+                    }
+                }
+                Winning();
+            } else if (countTurns == 9) {
+                Losing();
+            } else {
+                Answer(numOfBlacks, numOfWhites);
+            }
+            countTurns++;
+            console.log("countTurns =", countTurns);
+            isTurn = "turn" + (countTurns + 1);
+        }
+
+        function Answer(numOfBlacks, numOfWhites) {
+            for (let index = 0; index < 4; index++) {
+                document.getElementById("trying" + (countTurns + 1)).children[index].classList.add("cursor-pointer");
+                document.getElementById("trying" + (countTurns)).children[index].classList.remove("cursor-pointer");
+            }
+            for (let i = 0; i < 2; i++) {
+                for (let j = 0; j < 2; j++) {
+                    if (numOfBlacks) {
+                        const iconAnswer = document.getElementById("iconAnswer" + countTurns + "-" + i + "," + j);
+                        iconAnswer.style.color = "black";
+                        iconAnswer.classList.add('animate-bounce');
+                        setTimeout(() => {
+                            iconAnswer.classList.remove('animate-bounce');
+                        }, 550);
+                        numOfBlacks--;
+                    } else if (numOfWhites) {
+                        const iconAnswer = document.getElementById("iconAnswer" + countTurns + "-" + i + "," + j);
+                        iconAnswer.style.color = "white";
+                        iconAnswer.classList.add('animate-bounce');
+                        setTimeout(() => {
+                            iconAnswer.classList.remove('animate-bounce');
+                        }, 550);
+                        numOfWhites--;
+                    }
+                }
+            }
+        }
+
+        function scrollToTop() {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        }
+
+        function Winning() { // Changed 'Wining' to 'Winning'
+            scrollToTop();
+            const feedback = document.getElementById('feedback');
+            feedback.textContent = "You win!";
+            feedback.classList.add('text-green-500', 'animate-bounce', 'text-9xl', 'font-bold');
+            setTimeout(() => {
+                document.getElementById("hiddencode").classList.replace("flex", "hidden");
+                document.getElementById("upearingcode").classList.replace("hidden", "flex");
+                document.getElementById("upearingcode").classList.add("flip-in");
+            }, 300);
+            isWin = true;
+        }
+
+        function Losing() {
+            scrollToTop();
+            const feedback = document.getElementById('feedback');
+            feedback.textContent = "You lose!";
+            feedback.classList.add('text-red-500', 'animate-pulse', 'text-9xl', 'font-bold');
+            setTimeout(() => {
+                document.getElementById("hiddencode").classList.replace("flex", "hidden");
+                document.getElementById("upearingcode").classList.replace("hidden", "flex");
+                document.getElementById("upearingcode").classList.add("flip-in");
+            }, 300);
+        }
+
+        // Initialize the game
+        init();
+    </script>
+</body>
+
+
+</html>
